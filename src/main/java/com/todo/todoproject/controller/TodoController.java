@@ -1,98 +1,81 @@
 package com.todo.todoproject.controller;
 
-import com.todo.todoproject.dto.TodoDeleteRequestDto;
-import com.todo.todoproject.dto.TodoUpdateRequestDto;
+import com.todo.todoproject.CommonResponse;
+import com.todo.todoproject.dto.TodoRequestDTO;
+import com.todo.todoproject.dto.TodoResponseDTO;
 import com.todo.todoproject.entity.Todo;
-import com.todo.todoproject.dto.TodoRequestDto;
-import com.todo.todoproject.dto.TodoResponseDto;
+import com.todo.todoproject.service.TodoService;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
+@RequestMapping("/v1.0/todo")
 @RestController
-@RequestMapping("/api")
+@AllArgsConstructor
 public class TodoController {
 
-    private final List<Todo> todos = new ArrayList<>();
+	public final TodoService todoService;
 
-    @PostMapping("/todos")
-    public TodoResponseDto createTodo(@RequestBody TodoRequestDto todoRequestDto) {
-        Todo todo = new Todo(
-                todoRequestDto.getTitle(),
-                todoRequestDto.getContent(),
-                todoRequestDto.getAssignee(),
-                todoRequestDto.getPassword(),
-                new Date()
-        );
-        todos.add(todo);
-        return new TodoResponseDto(todos);
-    }
+	@PostMapping
+	public ResponseEntity<CommonResponse<TodoResponseDTO>> postTodo(@RequestBody TodoRequestDTO dto) {
+		Todo todo = todoService.createTodo(dto);
+		TodoResponseDTO response = new TodoResponseDTO(todo);
+		return ResponseEntity.ok()
+			.body(CommonResponse.<TodoResponseDTO>builder()
+				.statusCode(HttpStatus.OK.value())
+				.msg("생성이 완료 되었습니다.")
+				.data(response)
+			.build());
+	}
 
-   @GetMapping("/todos")
-   public TodoResponseDto getTodos() {
-        List<Todo> sortedTodos = new ArrayList<>(todos);
-        sortedTodos.sort(Comparator.comparing(Todo::getCreatedDate).reversed());
-        return new TodoResponseDto(sortedTodos);
-   }
+	@GetMapping("/{todoId}")
+	public ResponseEntity<CommonResponse<TodoResponseDTO>> getTodo(@PathVariable Long todoId) {
+		Todo todo = todoService.getTodo(todoId);
+		TodoResponseDTO response = new TodoResponseDTO(todo);
+		return ResponseEntity.ok()
+			.body(CommonResponse.<TodoResponseDTO>builder()
+				.statusCode(HttpStatus.OK.value())
+				.msg("단건 조회가 완료 되었습니다.")
+				.data(response)
+				.build());
+	}
 
-    @GetMapping("/todos/{id}")
-    public TodoResponseDto getTodoById(@PathVariable int id) {
-        Optional<Todo> todoOptional = todos.stream()
-                                        .filter(todo -> todo.getId() == id)
-                                        .findFirst();
+	@GetMapping
+	public ResponseEntity<CommonResponse<List<TodoResponseDTO>>> getTodos() {
+		List<Todo> todos = todoService.getTodos();
+		List<TodoResponseDTO> response = todos.stream()
+			.map(TodoResponseDTO::new)
+			.collect(Collectors.toList());
+		return ResponseEntity.ok()
+			.body(CommonResponse.<List<TodoResponseDTO>>builder()
+				.statusCode(HttpStatus.OK.value())
+				.msg("목록 조회이 완료 되었습니다.")
+				.data(response)
+				.build());
+	}
 
-        if(todoOptional.isPresent()) {
-            List<Todo> result = new ArrayList<>();
-            result.add(todoOptional.get());
-            return new TodoResponseDto(result);
-        } else {
-            throw new IllegalArgumentException("id(" + id + ")를 찾을 수 없습니다.");
-        }
-    }
+	@PutMapping("/{todoId}")
+	public ResponseEntity<CommonResponse<TodoResponseDTO>> putTodo(@PathVariable Long todoId, @RequestBody TodoRequestDTO dto) {
+		Todo todo = todoService.updateTodo(todoId, dto);
+		TodoResponseDTO response = new TodoResponseDTO(todo);
+		return ResponseEntity.ok()
+			.body(CommonResponse.<TodoResponseDTO>builder()
+			.statusCode(HttpStatus.OK.value())
+			.msg("수정이 완료 되었습니다.")
+			.data(response)
+			.build());
+	}
 
-    @PutMapping("/todos/{id}")
-    public TodoResponseDto updateTodo(@PathVariable int id, @RequestBody TodoUpdateRequestDto todoUpdateRequestDto) {
-        Optional<Todo> todoOptional = todos.stream()
-                .filter(todo -> todo.getId() == id)
-                .findFirst();
-
-        if (todoOptional.isPresent()) {
-            Todo oldTodo = todoOptional.get();
-            if (oldTodo.getPassword().equals(todoUpdateRequestDto.getPassword())) {
-                Todo updatedTodo = new Todo(
-                        todoUpdateRequestDto.getTitle(),
-                        todoUpdateRequestDto.getContent(),
-                        todoUpdateRequestDto.getAssignee(),
-                        oldTodo.getPassword(),
-                        oldTodo.getCreatedDate()
-                );
-                todos.remove(oldTodo);
-                todos.add(updatedTodo);
-                return new TodoResponseDto(Collections.singletonList(updatedTodo));
-            } else {
-                throw new IllegalArgumentException("비밀번호가 틀렸습니다.");
-            }
-        } else {
-            throw new IllegalArgumentException("id(" + id + ")를 찾을 수 없습니다.");
-        }
-    }
-
-    @DeleteMapping("/todos/{id}")
-    public TodoResponseDto deleteTodo(@PathVariable int id, @RequestBody TodoDeleteRequestDto todoDeleteRequestDto) {
-        Optional<Todo> todoOptional = todos.stream()
-                .filter(todo -> todo.getId() == id)
-                .findFirst();
-
-        if (todoOptional.isPresent()) {
-            Todo todo = todoOptional.get();
-            if (todo.getPassword().equals(todoDeleteRequestDto.getPassword())) {
-                todos.remove(todo);
-                return new TodoResponseDto(Collections.singletonList(todo));
-            } else {
-                throw new IllegalArgumentException("비밀번호가 틀렸습니다.");
-            }
-        } else {
-            throw new IllegalArgumentException("id(" + id + ")를 찾을 수 없습니다.");
-        }
-    }
+	@DeleteMapping("/{todoId}")
+	public ResponseEntity<CommonResponse> deleteTodo(@PathVariable Long todoId, @RequestBody TodoRequestDTO dto) {
+		todoService.deleteTodo(todoId, dto.getPassword());
+		return ResponseEntity.ok().body(CommonResponse.builder()
+			.statusCode(HttpStatus.OK.value())
+			.msg("삭제가 완료 되었습니다.")
+			.build());
+	}
 }

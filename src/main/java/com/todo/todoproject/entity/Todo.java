@@ -1,29 +1,42 @@
 package com.todo.todoproject.entity;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+
+import jakarta.persistence.*;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Entity
 @NoArgsConstructor
-@AllArgsConstructor
 public class Todo {
-    private static int idCounter = 0;
+	@Id
+	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@Column(name = "todo_id", nullable = false)
+	private Long todoId;
 
-    private int id;
-    private String title;
-    private String content;
-    private String assignee;
-    private String password;
-    private Date createdDate;
+	@Setter
+	private String title;
 
-    public Todo(String title, String content, String assignee, String password, Date createdDate) {
-        this.id = ++idCounter;
-        this.title = title;
-        this.content = content;
-        this.assignee = assignee;
-        this.password = password;
-        this.createdDate = createdDate;
-    }
+	@Setter
+	private String content;
+
+	@Setter
+	private String userName;
+
+	private String password;
+
+	private LocalDateTime createdAt;
+
+	@Builder
+	public Todo(String title, String content, String userName, String password) {
+		this.title = title;
+		this.content = content;
+		this.userName = userName;
+		this.password = password;
+		this.createdAt = LocalDateTime.now();
+	}
+
 }
